@@ -1,28 +1,41 @@
-name: syn
+name: 'Upstream Sync'
+
 on:
   schedule:
-    - cron:  '0 */8 * * *'
+     - cron:  '0 0/8 * * *'
+    # scheduled at 00:00 every Monday
 
   workflow_dispatch:  # click the button on Github repo!
+
 jobs:
-  date:
+  sync_latest_from_upstream:
     runs-on: ubuntu-latest
+    name: Sync latest commits from upstream repo
+
     steps:
-      # Checkout the branch
-      - name: checkout
-        uses: actions/checkout@v2
-      - name: setup git config
-        run: |
-          # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
-          git config user.name "auto merge Bwly999Rot"
-          git config user.email "<>"
-          git config pull.rebase false
-      - name: commit
-        run: |
-          # Stage the file, commit and push
-          git remote add LinghaoChan https://github.com/LinghaoChan/CSSummerCamp2022.git
-          git fetch LinghaoChan
-          git status
-          git checkout main
-          git merge LinghaoChan/main --strategy-option theirs --allow-unrelated-histories
-          git push origin main
+    # REQUIRED step
+    # Step 1: run a standard checkout action, provided by github
+    - name: Checkout target repo
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        # optional: set the branch to checkout,
+        # sync action checks out your 'target_sync_branch' anyway
+        ref:  main
+        # REQUIRED if your upstream repo is private (see wiki)
+        persist-credentials: false
+
+    # REQUIRED step
+    # Step 2: run the sync action
+    - name: Sync upstream changes
+      id: sync
+      uses: aormsby/Fork-Sync-With-Upstream-action@v3.0
+      with:
+        target_sync_branch: main
+        # REQUIRED 'target_repo_token' exactly like this!
+        target_repo_token: ${{ secrets.access_token_self }}
+        upstream_sync_branch: main
+        upstream_sync_repo: LinghaoChan/CSSummerCamp2022
+
+        # Set test_mode true to run tests instead of the true action!!
+        test_mode: false
